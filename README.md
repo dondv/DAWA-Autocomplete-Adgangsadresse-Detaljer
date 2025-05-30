@@ -22,17 +22,13 @@ Koden er skrevet i ren HTML, CSS og JavaScript og er designet til at køre direk
 *   En moderne web-browser med JavaScript aktiveret.
 *   Internetforbindelse for at kunne tilgå DAWA API'erne.
 
-## Opsætning og Kørsel
+## Test
 
-1.  **Download eller Klon:**
-    *   Download `dawa.html` filen.
-    *   Eller klon dette repository:
-        ```bash
-        git clone [URL-TIL-DIT-REPO]
-        ```
-2.  **Åbn i Browser:**
-    *   Åbn `dawa.html` filen direkte i din foretrukne web-browser.
-
+1.  **Åbn i Browser:**
+    *   Åbn `dawa.html` filen direkte i din web-browser.
+  
+![Eksempel på DAWA Autocomplete](https://raw.githubusercontent.com/dondv/DAWA-Autocomplete-Adgangsadresse-Detaljer/main/DAWA.jpg)
+    
 ## Anvendelse
 
 1.  **Indtast Adresse:** Begynd at skrive en dansk adresse i inputfeltet (f.eks. "Rådhuspladsen 1, København").
@@ -74,8 +70,7 @@ Koden kan indsættes direkte i en "HTML Paste" eller "Code Snippet" Cloud Page i
 
 ## Licens
 
-Dette projekt er licenseret under MIT Licensen - se `LICENSE` filen for detaljer (hvis du tilføjer en).
-*(Hvis du ikke har en LICENSE fil, kan du blot skrive: "Dette projekt er udgivet under MIT Licensen.")*
+Dette projekt er licenseret under MIT Licensen 
 
 ## Kreditering
 

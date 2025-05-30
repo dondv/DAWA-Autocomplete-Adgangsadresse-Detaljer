@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAWA Autocomplete & Adgangsadresse Detaljer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .autocomplete-container {
+            position: relative;
+            width: 100%; /* Gør den responsiv indenfor containeren */
+            max-width: 500px; /* Max bredde for inputfeltet */
+            margin-bottom: 20px;
+        }
+        #adresseInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        #suggestionsList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            width: 100%;
+            background-color: white;
+            z-index: 1000;
+            max-height: 250px;
+            overflow-y: auto;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        #suggestionsList li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        #suggestionsList li:last-child {
+            border-bottom: none;
+        }
+        #suggestionsList li:hover {
+            background-color: #f0f0f0;
+        }
+        #suggestionsList li.selected { /* Kan bruges til keyboard nav */
+            background-color: #e0e0e0;
+        }
+        .hidden {
+            display: none;
+        }
+        .info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border: 1px solid #a7d7c5;
+            border-radius: 4px;
+        }
+        .info-box h2 {
+            margin-top: 0;
+            color: #1e5641;
+        }
+        pre {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto; /* Scroll hvis indholdet er for bredt */
+            font-size: 0.9em;
+        }
+        .loading-message {
+            font-style: italic;
+            color: #555;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #ddd;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>DAWA Autocomplete & Adgangsadresse Detaljer</h1>
+        <p>Begynd at skrive en adresse:</p>
+
+        <div class="autocomplete-container">
+            <input type="text" id="adresseInput" placeholder="Fx Rådhuspladsen 1, 1550">
+            <ul id="suggestionsList" class="hidden"></ul>
+        </div>
+
+        <div class="info-box" id="valgtAdresseInfo" style="display:none;">
+            <h2>Valgt fra Autocomplete:</h2>
+            <pre id="valgtAdresseData"></pre>
+        </div>
+
+        <hr id="detailsSeparator" style="display:none;">
+
+        <div class="info-box" id="adgangsAdresseDetaljer" style="display:none;">
+            <h2>Detaljer for Adgangsadresse (inkl. historik):</h2>
+            <p id="adgangsAdresseStatus" class="loading-message"></p>
+            <pre id="adgangsAdresseData"></pre>
+        </div>
+    </div>
+
+    <script>
+        const adresseInput = document.getElementById('adresseInput');
+        const suggestionsList = document.getElementById('suggestionsList');
+        
+        const valgtAdresseInfoDiv = document.getElementById('valgtAdresseInfo');
+        const valgtAdresseDataPre = document.getElementById('valgtAdresseData');
+
+        const detailsSeparator = document.getElementById('detailsSeparator');
+        const adgangsAdresseDetaljerDiv = document.getElementById('adgangsAdresseDetaljer');
+        const adgangsAdresseStatusP = document.getElementById('adgangsAdresseStatus');
+        const adgangsAdresseDataPre = document.getElementById('adgangsAdresseData');
+
+        let debounceTimer;
+
+        adresseInput.addEventListener('input', (event) => {
+            const query = event.target.value;
+
+            suggestionsList.innerHTML = '';
+            suggestionsList.classList.add('hidden');
+            valgtAdresseInfoDiv.style.display = 'none';
+            adgangsAdresseDetaljerDiv.style.display = 'none';
+            detailsSeparator.style.display = 'none';
+
+            if (query.length < 2) {
+                return;
+            }
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchAutocompleteSuggestions(query);
+            }, 300);
+        });
+
+        async function fetchAutocompleteSuggestions(query) {
+            const baseUrl = 'https://api.dataforsyningen.dk/autocomplete';
+            const params = new URLSearchParams({
+                q: query,
+                type: 'adresse', // Vi vil have fulde adresser for at få adgangsadresseid
+                fuzzy: '',
+                caretpos: query.length,
+                per_side: '7'
+            });
+            const url = `${baseUrl}?${params.toString()}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Autocomplete API fejl: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+                displayAutocompleteSuggestions(data);
+            } catch (error) {
+                console.error("Fejl ved hentning af autocomplete forslag:", error);
+                suggestionsList.innerHTML = `<li>Fejl: ${error.message}</li>`;
+                suggestionsList.classList.remove('hidden');
+            }
+        }
+
+        function displayAutocompleteSuggestions(suggestions) {
+            suggestionsList.innerHTML = '';
+
+            if (suggestions.length === 0) {
+                suggestionsList.innerHTML = '<li>Ingen forslag fundet</li>';
+            } else {
+                suggestions.forEach(suggestion => {
+                    const li = document.createElement('li');
+                    li.textContent = suggestion.tekst;
+                    li.dataset.suggestionData = JSON.stringify(suggestion);
+
+                    li.addEventListener('click', () => {
+                        const valgtData = JSON.parse(li.dataset.suggestionData);
+                        
+                        adresseInput.value = valgtData.tekst;
+                        suggestionsList.innerHTML = '';
+                        suggestionsList.classList.add('hidden');
+
+                        // Vis data fra autocomplete valget
+                        valgtAdresseDataPre.textContent = JSON.stringify(valgtData, null, 2);
+                        valgtAdresseInfoDiv.style.display = 'block';
+
+                        // Tjek om vi har et adgangsadresseid
+                        if (valgtData.data && valgtData.data.adgangsadresseid) {
+                            detailsSeparator.style.display = 'block';
+                            adgangsAdresseDetaljerDiv.style.display = 'block';
+                            adgangsAdresseStatusP.textContent = 'Henter detaljer for adgangsadresse...';
+                            adgangsAdresseDataPre.textContent = ''; // Ryd tidligere data
+                            fetchAdgangsadresseDetails(valgtData.data.adgangsadresseid);
+                        } else {
+                            adgangsAdresseDetaljerDiv.style.display = 'none';
+                            detailsSeparator.style.display = 'none';
+                            console.warn("Ingen adgangsadresseid fundet i autocomplete data:", valgtData);
+                        }
+                    });
+                    suggestionsList.appendChild(li);
+                });
+            }
+            if (suggestions.length > 0 || suggestionsList.innerHTML.includes('Ingen forslag')) {
+                suggestionsList.classList.remove('hidden');
+            }
+        }
+
+        async function fetchAdgangsadresseDetails(adgangsadresseId) {
+            // Se dokumentation: https://dawadocs.dataforsyningen.dk/dok/api/adgangsadresse#opslag
+            // For at få historik: tilføj ?historik=true
+            // For en pænere struktur: tilføj &struktur=nestet (eller flad)
+            const baseUrl = 'https://api.dataforsyningen.dk/adgangsadresser';
+            const params = new URLSearchParams({
+                historik: 'true', // Få historiske versioner
+                struktur: 'nestet' // Anbefales for bedre læsbarhed af data
+                // Du kan tilføje flere parametre her, fx format=geojson hvis du skal bruge det
+            });
+            const url = `${baseUrl}/${adgangsadresseId}?${params.toString()}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Adgangsadresse API fejl: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                adgangsAdresseStatusP.textContent = 'Detaljer fundet:';
+                adgangsAdresseDataPre.textContent = JSON.stringify(data, null, 2); // Vis det rå JSON
+                
+                // Her kan du parse 'data' yderligere for at vise det mere brugervenligt
+                // F.eks. data.historik er et array med historiske versioner
+                console.log("Adgangsadresse detaljer:", data);
+
+            } catch (error) {
+                console.error("Fejl ved hentning af adgangsadresse detaljer:", error);
+                adgangsAdresseStatusP.textContent = `Fejl: ${error.message}`;
+                adgangsAdresseDataPre.textContent = '';
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!adresseInput.contains(event.target) && !suggestionsList.contains(event.target)) {
+                suggestionsList.classList.add('hidden');
+            }
+        });
+
+    </script>
+
+</body>
+</html>

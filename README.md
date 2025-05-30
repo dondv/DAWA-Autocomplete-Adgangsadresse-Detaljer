@@ -26,9 +26,14 @@ Koden er skrevet i ren HTML, CSS og JavaScript og er designet til at køre direk
 
 1.  **Åbn i Browser:**
     *   Åbn `dawa.html` filen direkte i din web-browser.
+
+Autocomplete:
   
 ![Eksempel på DAWA Autocomplete](https://raw.githubusercontent.com/dondv/DAWA-Autocomplete-Adgangsadresse-Detaljer/main/DAWA.jpg)
-    
+
+Output:
+
+![Eksempel på DAWA Autocomplete](https://raw.githubusercontent.com/dondv/DAWA-Autocomplete-Adgangsadresse-Detaljer/main/dawa2.jpg)
 ## Anvendelse
 
 1.  **Indtast Adresse:** Begynd at skrive en dansk adresse i inputfeltet (f.eks. "Rådhuspladsen 1, København").
